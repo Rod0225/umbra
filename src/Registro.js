@@ -71,7 +71,7 @@ const Registro = () => {
       <section>
         <h1>Success!</h1>
         <p>
-          <a href="#">index</a>
+          <a href="http://localhost:3000/index">index</a>
         </p>
       </section>
     ) :(
@@ -193,10 +193,11 @@ const Registro = () => {
 
                 
                 <div className='mt-8 flex flex-col gap-y-4'>
+                  
                     <button 
                     disabled={!validName || !validPwd || !validMatch ? true : false}
                     className=' hover:scale-[1.02] easy-in-out transition-all  py-3 rounded-xl bg-green-500 text-white text-lg font-bold'>Registrarse</button>
-                    
+                  
                 </div>
         </div>
       </form>
