@@ -2,14 +2,28 @@ import FormRegister from "./componentes/formRegister";
 import { useRef, useState, useEffect } from "react";
 import { faCheck,faTimes,faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import React from 'react'
+import axios from 'axios';
+import swal from "sweetalert2";
+
+import React from 'react';
 const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,23}/;
-const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%&]).{8,24}$/;
+const NAMES_REGEX = /^[a-zA-Z][a-zA-Z_]{3,50}/;
+const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%&-]).{8,24}$/;
+const EML_REGEX = /^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%&'*/=?^_+-`{|.}~]).{8,150}$/;
 
 
 
 
-const Registro = () => {
+export default function Register() {
+  const [formValue, setformValue] = React.useState({
+    username: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    password2: "",
+  });
+
   const userRef =useRef();
   const errRef=useRef();
 
@@ -17,6 +31,18 @@ const Registro = () => {
   const[user,setUser]=useState('');
   const[validName, setValidName]= useState(false);
   const[userFocus, setUserFocus]= useState(false);
+
+  const[firstName,setFirstName]=useState('');
+  const[validFirstName, setValidFirstName]= useState(false);
+  const[firstNameFocus, setFirstNameFocus]= useState(false);
+  
+  const[lastName,setLastName]=useState('');
+  const[validLastName, setValidLastName]= useState(false);
+  const[lastNameFocus, setLastNameFocus]= useState(false);
+  
+  const[email,setEmail]=useState('');
+  const[validEmail, setValidEmail]= useState(false);
+  const[emailFocus, setEmailFocus]= useState(false);
 
   const[pwd,setPassword]=useState('');
   const[validPwd, setValidPwd]= useState(false);
@@ -31,40 +57,92 @@ const Registro = () => {
 
   useEffect(() =>{
     userRef.current.focus();
-  },[])
+  },[]);
 
   useEffect(() =>{
     const result = USER_REGEX.test(user);
-    console.log(result);
-    console.log(user);
     setValidName(result);  
-  },[user])
+  },[user]);
+
+  useEffect(() =>{
+    const result = NAMES_REGEX.test(firstName);
+    setValidFirstName(result);  
+  },[firstName]);
+
+  useEffect(() =>{
+    const result = NAMES_REGEX.test(lastName);
+    setValidLastName(lastName);  
+  },[lastName]);
+
+  useEffect(() =>{
+    const result = EML_REGEX.test(email);
+    setValidEmail(email);  
+  },[email]);
 
   useEffect(() =>{
     const result = PWD_REGEX.test(pwd);
-    console.log(result);
-    console.log(pwd);
     setValidPwd(result);
     const match=pwd=== matchPwd;
     setValidMatch(match);  
-  },[pwd, matchPwd])
+  },[pwd, matchPwd]);
 
   useEffect(() =>{
     setErrMsg('');
-  },[user,pwd,matchPwd])
+  },[user,pwd,matchPwd]);
 
-  const handleSubmit= async (e) =>{
-    e.preventDefault();
-    const v1=USER_REGEX.test(user);
-    const v2=PWD_REGEX.test(pwd);
-    if(!v1||!v2){
-      setErrMsg("Entrada invalida");
-      return;
-    }
-    console.log(user, pwd);
-    setSuccess(true);
-  }
+  const handleChange = (event) => {
+    setformValue({
+      ...formValue,
+      [event.target.name]: event.target.value,
+    });
+  };
 
+  const baseURL = "http://localhost:8000/register/";
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const SignupFormData = new FormData();
+    SignupFormData.append("username", formValue.username);
+    SignupFormData.append("first_name", formValue.first_name);
+    SignupFormData.append("last_name", formValue.last_name);
+    SignupFormData.append("email", formValue.email);
+    SignupFormData.append("password", formValue.password);
+    SignupFormData.append("password2", formValue.password2);
+
+    axios
+      .post(baseURL, SignupFormData)
+      .then((response) => {
+        console.log(response.data);
+
+        new swal({
+          title: "Usuario registrado",
+          icon: "success",
+        }).then(() => {
+          //window.location.reload(false);
+          window.location.href = 'http://localhost:3000/login';
+        });
+      })
+      .catch((error) => {
+        console.log(error.response.data);
+
+        new swal({
+          title: "Error",
+          icon: "error",
+          text: JSON.stringify(error.response.data)
+            .replaceAll("[", "")
+            .replaceAll("]", "")
+            .replaceAll("{", "")
+            .replaceAll("}", "")
+            .replaceAll(",", "\n")
+            .replaceAll('"', "")                
+            .replaceAll('username:A user with that username already exists.',"Ya existe un usuario con ese nombre.")
+            .replaceAll('password:This password is too short.','La contraseña es muy corta, debe contener por lo menos 8 caracteres')
+            .replaceAll('It must contain at least 8 characters.',' '),
+        });
+      });
+    };
+  
   return (
     <>
     {success ? (
@@ -95,9 +173,10 @@ const Registro = () => {
                     <input
                       type="text"
                       id="username"
+                      name="username"
                       ref={userRef}
                       autoComplete="off"
-                      onChange={(e) => setUser(e.target.value)}
+                      onChange={handleChange}
                       required
                       aria-invalid={validName ? "false" : "true"}
                       aria-describedby="uidnote"
@@ -113,6 +192,74 @@ const Registro = () => {
                       Letras, numeros, guion bajo,guion son permitidos
                     </p>
                 </div>
+
+                <div>
+                    <label htmlFor="first_name" className='text-lg font-medium'>
+                      Nombre(s):
+                      <span className={validFirstName ? "valid" : "hidden"}>
+                        <FontAwesomeIcon icon={faCheck}/>
+                      </span>
+                      <span className={validFirstName || !firstName ? "hidden" : 
+                      "invalid"}>
+                        <FontAwesomeIcon icon={faTimes}/>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      id="first_name"
+                      name="first_name"
+                      //ref={userRef}
+                      autoComplete="off"
+                      onChange={handleChange}
+                      required
+                      aria-invalid={validName ? "false" : "true"}
+                      aria-describedby="uidnote"
+                      onFocus={() => setFirstNameFocus(true)}
+                      onBlur={() => setFirstNameFocus(false)}
+                      className='w-full border-2 border-gray-100 rounded-xl p-4 mt-1 bg-transparent'
+                      placeholder='Ingresa tu(s) nombres(s)'
+                    />
+                    <p id="uidnote" className={firstNameFocus && firstName && !validFirstName ? "instructions" : "hidden"}>
+                      <FontAwesomeIcon icon={faInfoCircle}/>
+                      4 to 50 caracteres.<br/>
+                      Deben empezar con una letra.<br/>
+                    </p>
+                </div>
+
+                <div>
+                    <label htmlFor="last_name" className='text-lg font-medium'>
+                      Apellido(s):
+                      <span className={validLastName ? "valid" : "hidden"}>
+                        <FontAwesomeIcon icon={faCheck}/>
+                      </span>
+                      <span className={validLastName || !lastName ? "hidden" : 
+                      "invalid"}>
+                        <FontAwesomeIcon icon={faTimes}/>
+                      </span>
+                    </label>
+                    <input
+                      id="last_name"
+                      name="last_name"
+                      //ref={userRef}
+                      autoComplete="off"
+                      onChange={handleChange}
+                      required
+                      aria-invalid={validName ? "false" : "true"}
+                      aria-describedby="uidnote"
+                      onFocus={() => setLastNameFocus(true)}
+                      onBlur={() => setLastNameFocus(false)}
+                      className='w-full border-2 border-gray-100 rounded-xl p-4 mt-1 bg-transparent'
+                      placeholder='Ingresa tus apellidos'
+                    />
+                    <p id="uidnote" className={lastNameFocus && lastName && !validLastName ? "instructions" : "hidden"}>
+                      <FontAwesomeIcon icon={faInfoCircle}/>
+                      4 to 50 caracteres.<br/>
+                      Deben empezar con una letra.<br/>
+                    </p>
+                </div>
+
+                
+
                 {/*<div>
                     <label className='text-lg font-medium'>Correo</label>
                     <input
@@ -122,6 +269,41 @@ const Registro = () => {
 
                     />
                     </div>*/}
+
+                <div>
+                    <label htmlFor="email" className='text-lg font-medium'>
+                        Correo electronico:
+                        <span className={validEmail ? "valid" : "hidden"}>
+                          <FontAwesomeIcon icon={faCheck}/>
+                        </span>
+                        <span className={validEmail || !email ? "hidden" : 
+                        "invalid"}>
+                          <FontAwesomeIcon icon={faTimes}/>
+                        </span>
+                    </label>
+                    <input
+
+                        className='w-full border-2 border-gray-100 rounded-xl p-4 mt-1 bg-transparent'
+                        placeholder='Ingresa tu correo electronico'
+                        type='email'
+                        id="email"
+                        name="email"
+                        onChange={handleChange}
+                        required
+                        aria-invalid={validPwd ? "false" : "true"}
+                        aria-describedby="pwdnote"
+                        onFocus={() => setEmailFocus(true)}
+                        onBlur={() => setEmailFocus(false)}
+                    />
+                    <p id="pwdnote" className={emailFocus && !validEmail ? "instructions" : "hidden"}>
+                      <FontAwesomeIcon icon={faInfoCircle}/>
+                      De 8 a 200 caracteres.<br/>
+                      Debe contener:
+                      <span aria-label="at symbol">@</span>
+                      
+                    </p>
+                </div>      
+
                 <div>
                     <label htmlFor="password" className='text-lg font-medium'>
                         Contraseña:
@@ -139,7 +321,8 @@ const Registro = () => {
                         placeholder='Ingresa tu contraseña'
                         type='password'
                         id="password"
-                        onChange={(e) => setPassword(e.target.value)}
+                        name="password"
+                        onChange={handleChange}
                         required
                         aria-invalid={validPwd ? "false" : "true"}
                         aria-describedby="pwdnote"
@@ -156,6 +339,7 @@ const Registro = () => {
                       <span aria-label="at symbol">@</span>
                       <span aria-label="dollar sign">$</span>
                       <span aria-label="percent">%</span>
+                      <span aria-label="bajo">-</span>
                     </p>
                 </div>
 
@@ -175,8 +359,9 @@ const Registro = () => {
                         className='w-full border-2 border-gray-100 rounded-xl p-4 mt-1 bg-transparent'
                         placeholder='Confirma tu contraseña'
                         type='password'
-                        id="confirm_pwd"
-                        onChange={(e) => setMatchPwd(e.target.value)}
+                        id="password2"
+                        name="password2"
+                        onChange={handleChange}
                         required
                         aria-invalid={validPwd ? "false" : "true"}
                         aria-describedby="confirmnote"
@@ -195,7 +380,8 @@ const Registro = () => {
                 <div className='mt-8 flex flex-col gap-y-4'>
                   
                     <button 
-                    disabled={!validName || !validPwd || !validMatch ? true : false}
+                    type="submit"
+                    
                     className=' hover:scale-[1.02] easy-in-out transition-all  py-3 rounded-xl bg-green-500 text-white text-lg font-bold'>Registrarse</button>
                   
                 </div>
@@ -210,6 +396,3 @@ const Registro = () => {
     </>
   )
 }
-
-
-export default Registro;
